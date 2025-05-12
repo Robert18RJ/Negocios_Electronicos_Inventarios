@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casos reales de optimización logística</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            /* overflow: hidden; /* Removed to allow scrolling */
+        }
+        .slide {
+            /* Removed fixed width and height */
+            width: 100%; /* Make it take full width */
+            min-height: 100vh; /* Make it at least the full viewport height */
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            color: white;
+            position: relative;
+            overflow: hidden; /* Keep overflow hidden for decorative elements */
+            /* Ensure content is centered vertically if taller than viewport */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Center vertically */
+            align-items: center; /* Center horizontally */
+            padding: 1.5rem; /* Default padding for small screens */
+        }
+
+         /* Adjust padding for medium screens and up */
+        @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+            .slide {
+                padding: 3rem; /* p-12 in original */
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+         /* Slider container card */
+        .card.p-6.flex-grow.relative.z-10 {
+            /* Removed fixed width and height */
+            width: 100%;
+            /* Adjusted height for responsiveness */
+            min-height: 500px; /* Minimum height, adjust as needed */
+            height: auto; /* Allow height to be determined by content if needed */
+             padding: 1rem; /* Default padding */
+        }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .card.p-6.flex-grow.relative.z-10 {
+                 padding: 1.5rem; /* p-6 */
+                 min-height: 500px; /* Original min-height */
+             }
+         }
+
+
+        .case-card {
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transform: translateX(50px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            padding: 1rem; /* Add padding to case cards themselves */
+            /* Added for vertical centering */
+            display: flex;
+            align-items: center; /* Vertically center the grid within the case card */
+            justify-content: center; /* Horizontally center if grid doesn't take full width */
+        }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .case-card {
+                 padding: 1.5rem; /* Original p-6 on container, distribute here */
+             }
+         }
+        .case-card.active {
+            opacity: 1;
+            transform: translateX(0);
+            z-index: 5;
+        }
+         /* Ensure the grid inside case-card takes full width and is vertically centered */
+         .case-card .grid {
+             width: 100%;
+             align-items: center; /* Vertically center grid items (columns) */
+         }
+
+
+        .company-logo {
+            /* Adjusted size for responsiveness */
+            width: 80px; /* smaller */
+            height: 80px; /* smaller */
+            border-radius: 16px; /* slightly smaller radius */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.75rem; /* smaller margin */
+        }
+        @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+            .company-logo {
+                width: 100px; /* Original size */
+                height: 100px; /* Original size */
+                border-radius: 20px; /* Original radius */
+                margin-bottom: 1rem; /* Original margin */
+            }
+        }
+         .company-logo i {
+             font-size: 2.5rem; /* text-4xl */
+         }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .company-logo i {
+                 font-size: 3rem; /* text-5xl */
+             }
+         }
+
+
+        .result-chip {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 0.4rem 0.8rem; /* Adjusted padding */
+            display: inline-flex;
+            align-items: center;
+            margin-right: 0.4rem; /* Adjusted margin */
+            margin-bottom: 0.4rem; /* Adjusted margin */
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .result-chip {
+                 padding: 0.5rem 1rem; /* Original padding */
+                 margin-right: 0.5rem; /* Original margin */
+                 margin-bottom: 0.5rem; /* Original margin */
+             }
+         }
+         .result-chip i {
+             margin-right: 0.4rem; /* Adjusted margin */
+         }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .result-chip i {
+                 margin-right: 0.5rem; /* Original margin */
+             }
+         }
+        .result-chip span {
+            font-size: 0.75rem; /* text-xs */
+        }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .result-chip span {
+                 font-size: 0.875rem; /* text-sm */
+             }
+         }
+
+
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.03);
+            z-index: 0;
+        }
+        .circle-1 {
+            width: 400px;
+            height: 400px;
+            top: -200px;
+            right: -100px;
+        }
+        .circle-2 {
+            width: 300px;
+            height: 300px;
+            bottom: -100px;
+            left: -50px;
+        }
+        .presenter-tag {
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px; /* Adjusted size */
+            color: #ddd6fe;
+            white-space: nowrap; /* Prevent wrapping */
+        }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .presenter-tag {
+                 font-size: 14px; /* Original size */
+             }
+         }
+
+        .slider-nav {
+            display: flex;
+            justify-content: center;
+            margin-top: 0.75rem; /* Adjusted margin */
+        }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .slider-nav {
+                 margin-top: 1rem; /* Original margin */
+             }
+         }
+
+        .slider-dot {
+            width: 8px; /* Adjusted size */
+            height: 8px; /* Adjusted size */
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            margin: 0 4px; /* Adjusted margin */
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .slider-dot {
+                 width: 10px; /* Original size */
+                 height: 10px; /* Original size */
+                 margin: 0 5px; /* Original margin */
+             }
+         }
+        .slider-dot.active {
+            background: #818cf8;
+            transform: scale(1.3);
+        }
+        .slider-control {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            /* Adjusted size for responsiveness */
+            width: 32px; /* w-8 */
+            height: 32px; /* h-8 */
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .slider-control {
+                 width: 40px; /* Original size */
+                 height: 40px; /* Original size */
+             }
+         }
+
+        .slider-control:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .slider-prev {
+            left: 10px; /* Adjusted position */
+        }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .slider-prev {
+                 left: 20px; /* Original position */
+             }
+         }
+        .slider-next {
+            right: 10px; /* Adjusted position */
+        }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .slider-next {
+                 right: 20px; /* Original position */
+             }
+         }
+
+
+        .stat-display {
+            position: relative;
+            padding-bottom: 0.75rem; /* Adjusted padding */
+        }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .stat-display {
+                 padding-bottom: 1rem; /* Original padding */
+             }
+         }
+        .stat-display::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px; /* Adjusted height */
+            background: linear-gradient(90deg, rgba(255,255,255,0.5), rgba(255,255,255,0));
+            border-radius: 2px;
+        }
+        .stat-value {
+            font-weight: bold;
+            /* Adjusted size for responsiveness */
+            font-size: 2rem; /* text-3xl */
+            background: linear-gradient(90deg, #fff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            display: inline-block;
+        }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .stat-value {
+                 font-size: 2.5rem; /* Original size */
+             }
+         }
+
+        .chart-container {
+            position: relative;
+            /* Adjusted height for responsiveness */
+            height: 150px; /* smaller */
+            width: 100%;
+        }
+         @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+             .chart-container {
+                 height: 200px; /* Original height */
+             }
+         }
+
+
+        /* Responsive adjustments */
+        @media (max-width: 767px) { /* Styles for screens smaller than md */
+             h1 {
+                font-size: 2rem; /* Adjust title size */
+                line-height: 1.2;
+            }
+             .slide > div:nth-child(2) { /* Header flex container */
+                 flex-direction: column; /* Stack header items */
+                 align-items: flex-start; /* Align items to start */
+                 margin-bottom: 1.5rem; /* Adjust bottom margin */
+             }
+              .presenter-tag {
+                 margin-top: 0.5rem; /* Add some space below title */
+                 align-self: flex-end; /* Align tag to the right */
+             }
+
+             /* Adjust grid within case card */
+             .case-card .grid {
+                 grid-template-columns: 1fr; /* Stack columns */
+                 gap: 1.5rem; /* Adjust gap */
+             }
+              .case-card .grid > div { /* Target the columns */
+                 grid-column: span 12 / span 12; /* Make columns take full width */
+             }
+
+             /* Adjust company info column */
+              .case-card .flex.flex-col.items-center {
+                 align-items: center; /* Keep centered */
+             }
+             .company-logo {
+                 width: 70px; /* Even smaller */
+                 height: 70px; /* Even smaller */
+                 margin-bottom: 0.5rem;
+             }
+             .company-logo i {
+                 font-size: 2rem; /* text-3xl */
+             }
+              .case-card h2 {
+                 font-size: 1.5rem; /* Adjust heading size */
+             }
+              .case-card p:nth-of-type(1) { /* Subtitle */
+                 font-size: 0.875rem; /* text-sm */
+             }
+              .chart-container {
+                 height: 120px; /* Even smaller chart */
+                 margin-top: 1rem; /* Adjusted margin */
+              }
+
+
+             /* Adjust case description column */
+             .case-card .col-span-1:nth-of-type(2) { /* This will now refer to the DESCRIPTION column */
+                 grid-column: span 12 / span 12; /* Take full width */
+             }
+              .case-card .col-span-1:nth-of-type(3) { /* Target the new RESULTS column */
+                 grid-column: span 12 / span 12; /* Take full width */
+             }
+              .case-card h3 { /* Case title */
+                 font-size: 1rem; /* Adjust size */
+                 margin-bottom: 1rem; /* Adjust margin */
+              }
+              .case-card h4 { /* Challenge/Solution titles */
+                 font-size: 1rem; /* Adjust size */
+                 margin-bottom: 0.5rem; /* Adjust margin */
+             }
+             .case-card p { /* Description text */
+                 font-size: 0.75rem; /* text-xs */
+             }
+              .case-card ul { /* Solution list */
+                 margin-bottom: 1rem; /* Adjust margin */
+              }
+             .case-card ul li { /* Solution list items */
+                 font-size: 0.75rem; /* text-xs */
+                 margin-bottom: 0.5rem; /* Adjust space */
+             }
+              .case-card ul li i {
+                 font-size: 0.875rem; /* text-sm */
+                 margin-right: 0.5rem;
+                 margin-top: 0.1rem;
+              }
+              .case-card .bg-indigo-900, .case-card .bg-blue-900, .case-card .bg-yellow-900 { /* Challenge/Solution backgrounds */
+                 padding: 0.75rem; /* p-3 */
+                 margin-bottom: 1rem; /* Adjust margin */
+              }
+              .case-card .grid.grid-cols-1 { /* Results grid - NOW INSIDE A SINGLE COLUMN */
+                 gap: 0.75rem; /* Smaller gap within the column */
+             }
+              .stat-display {
+                 padding-bottom: 0.5rem; /* Adjust padding */
+             }
+              .stat-display::after {
+                 height: 2px; /* Adjust height */
+             }
+              .stat-display .text-sm { /* Stat label */
+                 font-size: 0.75rem; /* text-xs */
+              }
+             .stat-value {
+                 font-size: 1.5rem; /* Even smaller stat value */
+             }
+             .result-chip {
+                 padding: 0.3rem 0.6rem; /* Even smaller chip padding */
+                 margin-right: 0.3rem; /* Even smaller margin */
+                 margin-bottom: 0.3rem; /* Even smaller margin */
+             }
+             .result-chip i {
+                 margin-right: 0.3rem; /* Even smaller margin */
+                 font-size: 0.75rem; /* text-xs */
+              }
+             .result-chip span {
+                 font-size: 0.625rem; /* text-xxs? */
+             }
+
+             /* Adjust slider controls */
+             .slider-control {
+                 width: 28px; /* Even smaller */
+                 height: 28px; /* Even smaller */
+             }
+              .slider-control i {
+                 font-size: 0.875rem; /* text-sm */
+              }
+             .slider-prev { left: 5px; }
+             .slider-next { right: 5px; }
+
+             /* Hide circles on small screens */
+            .circle {
+                 display: none;
+            }
+        }
+
+         @media (min-width: 768px) { /* Styles for md screens and up */
+             h1 {
+                font-size: 2.25rem; /* text-4xl */
+            }
+             .slide > div:nth-child(2) { /* Header flex container */
+                 flex-direction: row; /* Row direction */
+                 align-items: center; /* Center items */
+                 margin-bottom: 2rem; /* mb-8 */
+             }
+              .presenter-tag {
+                 margin-top: 0;
+                 align-self: auto;
+             }
+
+             /* Original grid within case card - NOW 3 COLUMNS */
+             .case-card .grid {
+                 grid-template-columns: repeat(3, minmax(0, 1fr)); /* grid-cols-3 */
+                 gap: 1.5rem; /* gap-6 */
+             }
+              .case-card .grid > div { /* Target the columns */
+                 grid-column: span 1 / span 1; /* Each takes 1 column */
+             }
+
+
+             /* Original company info column */
+              .case-card .flex.flex-col.items-center {
+                 align-items: center; /* Keep centered */
+             }
+             .company-logo {
+                 width: 100px; /* Original */
+                 height: 100px; /* Original */
+                 margin-bottom: 1rem; /* Original */
+             }
+              .company-logo i {
+                 font-size: 3rem; /* text-5xl */
+             }
+              .case-card h2 {
+                 font-size: 1.5rem; /* text-2xl */
+             }
+              .case-card p:nth-of-type(1) { /* Subtitle */
+                 font-size: 0.875rem; /* text-sm */
+             }
+              .chart-container {
+                 height: 200px; /* Original */
+                 margin-top: 1rem; /* Original */
+              }
+
+             /* Adjust case description column - NOW TAKES 1 COLUMN */
+              .case-card .col-span-1:nth-of-type(2) { /* Target the DESCRIPTION column */
+                 grid-column: span 1 / span 1; /* Takes 1 column */
+             }
+              .case-card h3 { /* Case title */
+                 font-size: 1.25rem; /* text-xl */
+                 margin-bottom: 1rem; /* mb-4 */
+              }
+              .case-card h4 { /* Challenge/Solution titles */
+                 font-size: 1.125rem; /* text-lg */
+                 margin-bottom: 0.5rem; /* mb-2 */
+             }
+             .case-card p { /* Description text */
+                 font-size: 0.875rem; /* text-sm */
+             }
+              .case-card ul { /* Solution list */
+                 margin-bottom: 1.5rem; /* mb-6 */
+              }
+              .case-card ul li { /* Solution list items */
+                 font-size: 0.875rem; /* text-sm */
+                 margin-bottom: 0.5rem; /* space-y-2 means mb-0.5rem */
+             }
+              .case-card ul li i {
+                 font-size: 1rem; /* text-lg */
+                 margin-right: 0.5rem;
+                 margin-top: 0.25rem;
+              }
+               .case-card .bg-indigo-900, .case-card .bg-blue-900, .case-card .bg-yellow-900 { /* Challenge/Solution backgrounds */
+                 padding: 1rem; /* p-4 */
+                 margin-bottom: 1.5rem; /* mb-6 */
+              }
+
+              /* New Results column - NOW TAKES 1 COLUMN */
+               .case-card .col-span-1:nth-of-type(3) { /* Target the new RESULTS column */
+                 grid-column: span 1 / span 1; /* Takes 1 column */
+             }
+              .case-card .grid.grid-cols-1 { /* Results grid - NOW INSIDE A SINGLE COLUMN */
+                 gap: 0.75rem; /* Smaller gap within the column */
+             }
+              .stat-display {
+                 padding-bottom: 0.75rem; /* Adjusted padding */
+             }
+              .stat-display::after {
+                 height: 3px; /* Adjusted height */
+             }
+              .stat-display .text-sm { /* Stat label */
+                 font-size: 0.875rem; /* text-sm */
+              }
+             .stat-value {
+                 font-size: 2rem; /* Text-3xl */
+             }
+             .result-chip {
+                 padding: 0.5rem 1rem; /* Original */
+                 margin-right: 0.5rem; /* Original */
+                 margin-bottom: 0.5rem; /* Original */
+             }
+             .result-chip i {
+                 margin-right: 0.5rem; /* Original */
+             }
+             .result-chip span {
+                 font-size: 0.875rem; /* text-sm */
+             }
+
+
+             /* Original slider controls */
+             .slider-control {
+                 width: 40px; /* Original */
+                 height: 40px; /* Original */
+             }
+             .slider-control i {
+                 font-size: 1.5rem; /* Original */
+             }
+             .slider-prev { left: 20px; }
+             .slider-next { right: 20px; }
+
+
+             .circle {
+                 display: block; /* Show circles */
+            }
+         }
+
+          /* Small screen adjustments (less than sm) */
+         @media (max-width: 639px) { /* Tailwind's 'sm' breakpoint - 1px less */
+             .slide {
+                 padding: 1rem; /* Adjust padding further down */
+             }
+              /* Slider container card */
+             .card.p-6.flex-grow.relative.z-10 {
+                 padding: 0.75rem; /* Even Smaller padding */
+                 min-height: 400px; /* Even Smaller min-height */
+             }
+             .case-card {
+                 padding: 0.75rem; /* Even Smaller padding */
+             }
+
+             /* Adjust grid within case card */
+             .case-card .grid {
+                 gap: 1rem; /* Adjust gap */
+             }
+
+             /* Adjust company info column */
+             .company-logo {
+                 width: 60px; /* Even Smaller */
+                 height: 60px; /* Even Smaller */
+                 margin-bottom: 0.4rem;
+             }
+             .company-logo i {
+                 font-size: 1.875rem; /* text-2xl */
+             }
+              .case-card h2 {
+                 font-size: 1.25rem; /* text-lg */
+             }
+              .case-card p:nth-of-type(1) { /* Subtitle */
+                 font-size: 0.75rem; /* text-xs */
+             }
+              .chart-container {
+                 height: 100px; /* Even smaller chart */
+                 margin-top: 0.75rem; /* Adjusted margin */
+              }
+
+              /* Adjust case description column */
+              .case-card .col-span-1:nth-of-type(2) { /* Target the DESCRIPTION column */
+                 grid-column: span 12 / span 12; /* Take full width */
+             }
+              .case-card .col-span-1:nth-of-type(3) { /* Target the new RESULTS column */
+                 grid-column: span 12 / span 12; /* Take full width */
+             }
+              .case-card h3 { /* Case title */
+                 font-size: 0.875rem; /* text-sm */
+                 margin-bottom: 0.75rem; /* Adjust margin */
+              }
+              .case-card h4 { /* Challenge/Solution titles */
+                 font-size: 0.875rem; /* text-sm */
+                 margin-bottom: 0.4rem; /* Adjust margin */
+             }
+             .case-card p { /* Description text */
+                 font-size: 0.625rem; /* text-xxs? */
+             }
+              .case-card ul { /* Solution list */
+                 margin-bottom: 0.75rem; /* Adjust margin */
+              }
+             .case-card ul li { /* Solution list items */
+                 font-size: 0.625rem; /* text-xxs? */
+                 margin-bottom: 0.3rem; /* Adjust space */
+             }
+              .case-card ul li i {
+                 font-size: 0.75rem; /* text-xs */
+                 margin-right: 0.3rem;
+                 margin-top: 0.05rem;
+              }
+              .case-card .bg-indigo-900, .case-card .bg-blue-900, .case-card .bg-yellow-900 { /* Challenge/Solution backgrounds */
+                 padding: 0.5rem; /* p-2 */
+                 margin-bottom: 0.75rem; /* Adjust margin */
+              }
+              /* Results column */
+               .case-card .col-span-1:nth-of-type(3) {
+                 grid-column: span 12 / span 12; /* Takes full width */
+              }
+              .case-card .grid.grid-cols-1 { /* Results grid - NOW INSIDE A SINGLE COLUMN */
+                 gap: 0.5rem; /* Adjust gap */
+             }
+              .stat-display {
+                 padding-bottom: 0.4rem; /* Adjust padding */
+             }
+              .stat-display::after {
+                 height: 1px; /* Adjust height */
+             }
+              .stat-display .text-sm { /* Stat label */
+                 font-size: 0.625rem; /* text-xxs? */
+              }
+             .stat-value {
+                 font-size: 1.2rem; /* Even smaller stat value */
+             }
+             .result-chip {
+                 padding: 0.2rem 0.5rem; /* Even smaller chip padding */
+                 margin-right: 0.2rem; /* Even smaller margin */
+                 margin-bottom: 0.2rem; /* Even smaller margin */
+             }
+              .result-chip i {
+                 margin-right: 0.2rem; /* Even smaller margin */
+                 font-size: 0.75rem; /* text-xs */
+              }
+             .result-chip span {
+                 font-size: 0.5rem; /* text-xxxs? */
+             }
+
+             /* Adjust slider controls */
+             .slider-control {
+                 width: 24px; /* Even Smaller */
+                 height: 24px; /* Even Smaller */
+             }
+              .slider-control i {
+                 font-size: 0.75rem; /* text-xs */
+              }
+             .slider-prev { left: 2px; }
+             .slider-next { right: 2px; }
+              .slider-dot {
+                 width: 6px;
+                 height: 6px;
+                 margin: 0 3px;
+              }
+
+         }
+    </style>
+</head>
+<body>
+    <div class="slide flex flex-col p-6 md:p-12 relative">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 z-10 w-full max-w-full">
+            <div>
+                <h1 class="text-2xl md:text-4xl font-bold text-white">Casos reales de optimización logística</h1>
+                <div class="h-1 w-20 md:w-24 bg-purple-500 mt-1 md:mt-2"></div> </div>
+            <div class="presenter-tag mt-2 md:mt-0 self-end md:self-auto">
+                <i class="fas fa-user mr-1 md:mr-2"></i>Camila Rodríguez
+            </div>
+        </div>
+
+        <div class="card p-4 md:p-6 flex-grow relative z-10 overflow-hidden w-full max-w-full" style="min-height: 400px;">
+            <div class="case-slider w-full h-full relative">
+                <div class="case-card active p-4 md:p-6" id="case1">
+                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 h-full">
+                        <div class="col-span-1 flex flex-col items-center justify-center text-center">
+                            <div class="company-logo bg-gradient-to-br from-orange-600 to-yellow-600 mb-3 md:mb-4">
+                                 <i class="fab fa-amazon text-4xl md:text-5xl text-white"></i>
+                            </div>
+                            <h2 class="text-xl md:text-2xl font-bold mb-1 md:mb-2">Amazon</h2>
+                            <p class="text-xs md:text-sm text-blue-200 mb-3 md:mb-4">Líder global en e-commerce y logística</p>
+
+                             <div class="w-full mt-3 md:mt-4">
+                                 <div class="chart-container" style="height: 120px;"> <canvas id="amazonChart"></canvas>
+                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="col-span-1 flex flex-col justify-center">
+                             <h3 class="text-lg md:text-xl font-semibold text-indigo-300 mb-3 md:mb-4">Robotización de Almacenes</h3>
+
+                             <div class="bg-indigo-900 bg-opacity-20 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
+                                 <h4 class="text-base md:text-lg text-white mb-1 md:mb-2">Desafío:</h4>
+                                 <p class="text-sm text-blue-100">
+                                    Optimizar operaciones de almacenamiento y picking para millones de productos con tiempos de entrega cada vez más rápidos.
+                                </p>
+                            </div>
+
+                            <div class="bg-blue-900 bg-opacity-20 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
+                                <h4 class="text-base md:text-lg text-white mb-1 md:mb-2">Solución:</h4>
+                                <ul class="text-sm text-blue-100 space-y-1 md:space-y-2">
+                                    <li class="flex items-start">
+                                         <i class="fas fa-robot text-blue-400 mr-2 mt-0 md:mt-1 text-base md:text-lg"></i>
+                                        <span>Implementación de 350,000+ robots Kiva en centros logísticos</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                         <i class="fas fa-microchip text-blue-400 mr-2 mt-0 md:mt-1 text-base md:text-lg"></i>
+                                        <span>IA para optimización de rutas de picking y packing</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                         <i class="fas fa-boxes text-blue-400 mr-2 mt-0 md:mt-1 text-base md:text-lg"></i>
+                                        <span>Sistema de estanterías móviles que se desplazan al operador</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="col-span-1 flex flex-col justify-center">
+                             <h4 class="text-base md:text-lg text-white mb-2 md:mb-3">Resultados:</h4>
+                             <div class="grid grid-cols-1 gap-3 md:gap-4">
+                                 <div class="stat-display pb-3 md:pb-4">
+                                     <div class="text-sm text-blue-300 mb-0 md:mb-1">Reducción de tiempo de picking</div>
+                                     <div class="stat-value text-2xl md:text-2xl">-70%</div>
+                                </div>
+                                 <div class="stat-display pb-3 md:pb-4">
+                                     <div class="text-sm text-blue-300 mb-0 md:mb-1">Incremento capacidad almacenamiento</div>
+                                     <div class="stat-value text-2xl md:text-2xl">+50%</div>
+                                </div>
+                                 <div class="result-chip px-3 py-1 md:px-4 md:py-2 mr-2 md:mr-2 mb-2 md:mb-2">
+                                     <i class="fas fa-bolt text-yellow-400 mr-1 md:mr-2 text-sm md:text-base"></i>
+                                     <span class="text-xs md:text-sm">15 min de preparación de pedido</span>
+                                </div>
+                                 <div class="result-chip px-3 py-1 md:px-4 md:py-2 mr-2 md:mr-2 mb-2 md:mb-2">
+                                     <i class="fas fa-dollar-sign text-green-400 mr-1 md:mr-2 text-sm md:text-base"></i>
+                                     <span class="text-xs md:text-sm">ROI en 24 meses</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="case-card p-4 md:p-6" id="case2">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 h-full">
+                        <div class="col-span-1 flex flex-col items-center justify-center text-center">
+                             <div class="company-logo bg-gradient-to-br from-yellow-500 to-red-500 mb-3 md:mb-4">
+                                <i class="fas fa-shipping-fast text-4xl md:text-5xl text-white"></i>
+                            </div>
+                             <h2 class="text-xl md:text-2xl font-bold mb-1 md:mb-2">DHL</h2>
+                            <p class="text-xs md:text-sm text-blue-200 mb-3 md:mb-4">Líder mundial en servicios logísticos</p>
+
+                             <div class="w-full mt-3 md:mt-4">
+                                <div class="chart-container" style="height: 120px;"> <canvas id="dhlChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-span-1 flex flex-col justify-center">
+                            <h3 class="text-lg md:text-xl font-semibold text-yellow-300 mb-3 md:mb-4">Supply Chain Digitalización</h3>
+
+                            <div class="bg-yellow-900 bg-opacity-20 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
+                                <h4 class="text-base md:text-lg text-white mb-1 md:mb-2">Desafío:</h4>
+                                <p class="text-sm text-blue-100">
+                                    Optimizar visibilidad y trazabilidad de envíos internacionales en tiempo real, reduciendo ineficiencias por falta de información.
+                                </p>
+                            </div>
+
+                            <div class="bg-yellow-900 bg-opacity-20 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
+                                <h4 class="text-base md:text-lg text-white mb-1 md:mb-2">Solución:</h4>
+                                <ul class="text-sm text-blue-100 space-y-1 md:space-y-2">
+                                    <li class="flex items-start">
+                                        <i class="fas fa-globe text-yellow-400 mr-2 mt-0 md:mt-1 text-base md:text-lg"></i>
+                                        <span>Plataforma digital integrada para toda la cadena de suministro</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-satellite text-yellow-400 mr-2 mt-0 md:mt-1 text-base md:text-lg"></i>
+                                        <span>IoT y sensores para seguimiento en tiempo real de mercancías</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-cloud text-yellow-400 mr-2 mt-0 md:mt-1 text-base md:text-lg"></i>
+                                        <span>Análisis predictivo para optimizar rutas y gestionar contingencias</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="col-span-1 flex flex-col justify-center">
+                             <h4 class="text-base md:text-lg text-white mb-2 md:mb-3">Resultados:</h4>
+                             <div class="grid grid-cols-1 gap-3 md:gap-4">
+                                 <div class="stat-display pb-3 md:pb-4">
+                                     <div class="text-sm text-blue-300 mb-0 md:mb-1">Reducción de incidencias</div>
+                                     <div class="stat-value text-2xl md:text-2xl">-45%</div>
+                                </div>
+                                 <div class="stat-display pb-3 md:pb-4">
+                                     <div class="text-sm text-blue-300 mb-0 md:mb-1">Optimización de costos</div>
+                                     <div class="stat-value text-2xl md:text-2xl">-18%</div>
+                                </div>
+                                 <div class="result-chip px-3 py-1 md:px-4 md:py-2 mr-2 md:mr-2 mb-2 md:mb-2">
+                                    <i class="fas fa-thumbs-up text-blue-400 mr-1 md:mr-2 text-sm md:text-base"></i>
+                                    <span class="text-xs md:text-sm">99.8% de entregas a tiempo</span>
+                                </div>
+                                 <div class="result-chip px-3 py-1 md:px-4 md:py-2 mr-2 md:mr-2 mb-2 md:mb-2">
+                                     <i class="fas fa-leaf text-green-400 mr-1 md:mr-2 text-sm md:text-base"></i>
+                                    <span class="text-xs md:text-sm">-25% emisiones CO2</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="case-card p-4 md:p-6" id="case3">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 h-full">
+                        <div class="col-span-1 flex flex-col items-center justify-center text-center">
+                             <div class="company-logo bg-gradient-to-br from-blue-600 to-blue-800 mb-3 md:mb-4">
+                                 <i class="fas fa-truck-container text-4xl md:text-5xl text-white"></i>
+                                <i class="fas fa-truck text-4xl md:text-5xl text-white hidden"></i>
+                            </div>
+                            <h2 class="text-xl md:text-2xl font-bold mb-1 md:mb-2">Ransa</h2>
+                            <p class="text-xs md:text-sm text-blue-200 mb-3 md:mb-4">Operador logístico líder en Latinoamérica</p>
+
+                             <div class="w-full mt-3 md:mt-4">
+                                <div class="chart-container" style="height: 120px;"> <canvas id="ransaChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-span-1 flex flex-col justify-center">
+                             <h3 class="text-lg md:text-xl font-semibold text-blue-300 mb-3 md:mb-4">Transformación WMS Multi-Cliente</h3>
+
+                            <div class="bg-blue-900 bg-opacity-20 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
+                                <h4 class="text-base md:text-lg text-white mb-1 md:mb-2">Desafío:</h4>
+                                <p class="text-sm text-blue-100">
+                                    Unificar operaciones de múltiples clientes con requerimientos diferentes, reduciendo tiempo de procesamiento y errores logísticos.
+                                </p>
+                            </div>
+
+                            <div class="bg-blue-900 bg-opacity-20 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
+                                <h4 class="text-base md:text-lg text-white mb-1 md:mb-2">Solución:</h4>
+                                <ul class="text-sm text-blue-100 space-y-1 md:space-y-2">
+                                    <li class="flex items-start">
+                                         <i class="fas fa-database text-blue-400 mr-2 mt-0 md:mt-1 text-base md:text-lg"></i>
+                                        <span>Implementación de WMS centralizado con parametrización por cliente</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                         <i class="fas fa-tablet-alt text-blue-400 mr-2 mt-0 md:mt-1 text-base md:text-lg"></i>
+                                        <span>Terminales móviles para gestión en tiempo real de operaciones</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                         <i class="fas fa-chart-line text-blue-400 mr-2 mt-0 md:mt-1 text-base md:text-lg"></i>
+                                        <span>Dashboard de KPIs para monitoreo y mejora continua</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="col-span-1 flex flex-col justify-center">
+                             <h4 class="text-base md:text-lg text-white mb-2 md:mb-3">Resultados:</h4>
+                             <div class="grid grid-cols-1 gap-3 md:gap-4">
+                                 <div class="stat-display pb-3 md:pb-4">
+                                     <div class="text-sm text-blue-300 mb-0 md:mb-1">Reducción de errores de inventario</div>
+                                     <div class="stat-value text-2xl md:text-2xl">-63%</div>
+                                </div>
+                                 <div class="stat-display pb-3 md:pb-4">
+                                     <div class="text-sm text-blue-300 mb-0 md:mb-1">Mejora en productividad</div>
+                                    <div class="stat-value text-2xl md:text-2xl">+32%</div>
+                                </div>
+                                 <div class="result-chip px-3 py-1 md:px-4 md:py-2 mr-2 md:mr-2 mb-2 md:mb-2">
+                                    <i class="fas fa-clock text-purple-400 mr-1 md:mr-2 text-sm md:text-base"></i>
+                                    <span class="text-xs md:text-sm">-35% tiempo de preparación</span>
+                                </div>
+                                 <div class="result-chip px-3 py-1 md:px-4 md:py-2 mr-2 md:mr-2 mb-2 md:mb-2">
+                                     <i class="fas fa-search text-green-400 mr-1 md:mr-2 text-sm md:text-base"></i>
+                                    <span class="text-xs md:text-sm">99.7% precisión inventario</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slider-control slider-prev w-8 h-8 md:w-10 h-10 left-2 md:left-5" onclick="changeSlide(-1)">
+                    <i class="fas fa-chevron-left text-base md:text-lg"></i> </div>
+                <div class="slider-control slider-next w-8 h-8 md:w-10 h-10 right-2 md:right-5" onclick="changeSlide(1)">
+                    <i class="fas fa-chevron-right text-base md:text-lg"></i> </div>
+            </div>
+
+            <div class="slider-nav mt-3 md:mt-4">
+                <div class="slider-dot active w-2 h-2 md:w-2.5 h-2.5 mx-1 md:mx-1.5" onclick="goToSlide(0)"></div>
+                <div class="slider-dot w-2 h-2 md:w-2.5 h-2.5 mx-1 md:mx-1.5" onclick="goToSlide(1)"></div>
+                <div class="slider-dot w-2 h-2 md:w-2.5 h-2.5 mx-1 md:mx-1.5" onclick="goToSlide(2)"></div>
+            </div>
+        </div>
+
+        <div class="absolute bottom-4 right-4 md:right-8 text-sm text-blue-300 opacity-70">
+            7/10
+        </div>
+    </div>
+
+    <script>
+        // Slider functionality
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.case-card');
+        const dots = document.querySelectorAll('.slider-dot');
+        const totalSlides = slides.length;
+
+        function showSlide(n) {
+            // Hide all slides
+            slides.forEach(slide => {
+                slide.classList.remove('active');
+            });
+
+            // Remove active class from all dots
+            dots.forEach(dot => {
+                dot.classList.remove('active');
+            });
+
+            // Show the current slide and activate corresponding dot
+            slides[n].classList.add('active');
+            dots[n].classList.add('active');
+        }
+
+        function goToSlide(n) {
+            currentSlide = n;
+            showSlide(currentSlide);
+        }
+
+        function changeSlide(step) {
+            currentSlide = (currentSlide + step + totalSlides) % totalSlides;
+            showSlide(currentSlide);
+        }
+
+        // Create charts
+        function createChart(canvasId, labels, data, colors) {
+             const canvas = document.getElementById(canvasId);
+             if (!canvas) return; // Exit if canvas not found
+
+            const ctx = canvas.getContext('2d');
+            return new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Mejora (%)',
+                        data: data,
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                             callbacks: {
+                                 label: function(context) {
+                                     let label = context.dataset.label || '';
+                                     if (label) {
+                                         label += ': ';
+                                     }
+                                     if (context.raw !== null) {
+                                         label += context.raw + '%';
+                                     }
+                                     return label;
+                                 },
+                                 title: function() { return ''; } // Hide title
+                             },
+                              bodyColor: '#e2e8f0', /* Added tooltip styles for readability */
+                              titleColor: '#f8fafc',
+                              backgroundColor: 'rgba(30, 41, 59, 0.9)'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Store chart instances
+        const charts = {};
+
+        // Initialize charts when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Amazon chart
+            charts.amazon = createChart('amazonChart',
+                ['Eficiencia', 'Capacidad', 'Velocidad'],
+                [70, 50, 65],
+                {
+                    background: ['rgba(245, 158, 11, 0.6)', 'rgba(245, 158, 11, 0.6)', 'rgba(245, 158, 11, 0.6)'],
+                    border: ['rgba(245, 158, 11, 1)', 'rgba(245, 158, 11, 1)', 'rgba(245, 158, 11, 1)']
+                }
+            );
+
+            // DHL chart
+            charts.dhl = createChart('dhlChart',
+                ['Precisión', 'Tiempo', 'Costos'],
+                [45, 30, 18],
+                {
+                    background: ['rgba(234, 88, 12, 0.6)', 'rgba(234, 88, 12, 0.6)', 'rgba(234, 88, 12, 0.6)'],
+                    border: ['rgba(234, 88, 12, 1)', 'rgba(234, 88, 12, 1)', 'rgba(234, 88, 12, 1)']
+                }
+            );
+
+            // Ransa chart
+            charts.ransa = createChart('ransaChart',
+                ['Errores', 'Productividad', 'Tiempo'],
+                [63, 32, 35],
+                {
+                    background: ['rgba(59, 130, 246, 0.6)', 'rgba(59, 130, 246, 0.6)', 'rgba(59, 130, 246, 0.6)'],
+                    border: ['rgba(59, 130, 246, 1)', 'rgba(59, 130, 246, 1)', 'rgba(59, 130, 246, 1)']
+                }
+            );
+             // Initial slide display
+             showSlide(currentSlide);
+        });
+
+         // Update chart size on window resize
+         window.addEventListener('resize', function() {
+             for (const chartKey in charts) {
+                 if (charts[chartKey]) {
+                     charts[chartKey].resize();
+                 }
+             }
+         });
+    </script>
+</body>
+</html>

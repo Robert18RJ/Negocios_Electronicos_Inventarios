@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modelos de gestión de inventario</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            /* Removed overflow: hidden; to allow scrolling on small screens */
+        }
+        .slide {
+            /* Removed fixed width and height */
+            width: 100%; /* Make it take full width */
+            min-height: 100vh; /* Make it at least the full viewport height */
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            color: white;
+            position: relative;
+            overflow: hidden; /* Keep overflow hidden for decorative elements */
+            /* Ensure content is centered vertically if taller than viewport */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Center vertically */
+            align-items: center; /* Center horizontally */
+            padding: 1.5rem; /* Default padding for small screens */
+        }
+
+         /* Adjust padding for medium screens and up */
+        @media (min-width: 768px) { /* Tailwind's 'md' breakpoint */
+            .slide {
+                padding: 3rem; /* p-12 in original */
+            }
+        }
+
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        .model-card {
+             /* Adjusted transition for better hover effect */
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+             /* Ensure hover effect doesn't push layout too much on small screens */
+             /* Add margin-bottom on small screens */
+             margin-bottom: 1rem;
+        }
+
+         /* Remove margin-bottom on medium screens and up where cards are in a grid */
+         @media (min-width: 768px) { /* md breakpoint */
+             .model-card {
+                 margin-bottom: 0;
+             }
+         }
+
+        .model-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+         /* Adjustments for hover effect on smaller screens if needed */
+         @media (max-width: 767px) { /* before md breakpoint */
+             .model-card:hover {
+                 transform: none; /* Disable translateY on hover on small screens */
+                 box-shadow: 0 15px 30px rgba(0,0,0,0.2); /* Keep default shadow */
+             }
+         }
+
+
+        .model-card:hover .model-header {
+            height: 100px;
+        }
+         /* Adjust model header height on smaller screens */
+         @media (max-width: 767px) { /* before md breakpoint */
+              .model-card:hover .model-header {
+                  height: auto; /* Allow height to adjust based on content */
+              }
+         }
+
+        .model-card:hover .formula-badge {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .model-header {
+            height: 80px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        .formula-badge {
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 10px 15px;
+            margin-top: 10px;
+            transform: translateY(10px);
+            opacity: 0.8;
+            transition: all 0.4s ease;
+             /* Ensure formulas are readable on hover state even on small screens */
+             pointer-events: none; /* Prevent badge from blocking clicks on content below */
+        }
+         .model-card:hover .formula-badge {
+              pointer-events: auto; /* Enable pointer events on hover */
+         }
+
+        .feature-item {
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .feature-item::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            border-radius: 3px;
+        }
+        .feature-eoq::before {
+            background: linear-gradient(to bottom, #3b82f6, #60a5fa);
+        }
+        .feature-rop::before {
+            background: linear-gradient(to bottom, #8b5cf6, #a78bfa);
+        }
+        .feature-jit::before {
+            background: linear-gradient(to bottom, #ec4899, #f472b6);
+        }
+        .chart-container {
+            position: relative;
+            /* Adjusted height for responsiveness */
+            height: 200px; /* Smaller default height */
+            width: 100%;
+        }
+         @media (min-width: 768px) { /* md breakpoint */
+             .chart-container {
+                 height: 290px; /* Original height on larger screens */
+             }
+         }
+
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.03);
+            z-index: 0;
+        }
+        .circle-1 {
+            width: 400px;
+            height: 400px;
+            top: -200px;
+            right: -100px;
+        }
+        .circle-2 {
+            width: 300px;
+            height: 300px;
+            bottom: -100px;
+            left: -50px;
+        }
+
+         /* Hide circles on small screens for less clutter */
+         @media (max-width: 767px) { /* before md breakpoint */
+             .circle {
+                 display: none;
+             }
+         }
+
+        .presenter-tag {
+            background: rgba(59, 130, 246, 0.2);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 14px;
+            color: #bfdbfe;
+            white-space: nowrap; /* Prevent wrapping */
+        }
+
+        /* Animation for formula hover effect */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .formula-badge:hover {
+            animation: pulse 2s infinite;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Fix for MathJax rendering */
+        .MathJax {
+            color: white !important;
+        }
+
+         /* Responsive text adjustments */
+         @media (max-width: 767px) { /* before md breakpoint */
+             h1 {
+                 font-size: 1.875rem; /* text-3xl */
+             }
+              h2 {
+                  font-size: 1.125rem; /* text-lg */
+              }
+              h3 {
+                  font-size: 1.25rem; /* text-xl */
+              }
+              h4 {
+                  font-size: 1rem; /* text-base */
+              }
+             .text-sm {
+                 font-size: 0.875rem; /* text-sm */
+             }
+             .text-xs {
+                 font-size: 0.75rem; /* text-xs */
+             }
+              .presenter-tag {
+                  font-size: 12px;
+              }
+              /* Adjust vertical spacing on small screens */
+              .mb-8 { margin-bottom: 1.5rem; }
+              .mb-6 { margin-bottom: 1rem; }
+              .mb-4 { margin-bottom: 0.75rem; }
+              .mb-3 { margin-bottom: 0.5rem; }
+              .mb-2 { margin-bottom: 0.4rem; }
+              .mt-2 { margin-top: 0.5rem; } /* for h1 underline */
+              .mt-6 { margin-top: 1.5rem; } /* for selector guide */
+
+         }
+    </style>
+</head>
+<body>
+    <div class="slide flex flex-col p-6 md:p-12 relative">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 z-10 w-full max-w-full">
+            <div>
+                <h1 class="text-2xl md:text-4xl font-bold text-white">Modelos de gestión de inventario</h1>
+                <div class="h-1 w-20 md:w-24 bg-blue-500 mt-1 md:mt-2"></div> </div>
+            <div class="presenter-tag mt-2 md:mt-0 self-end md:self-auto">
+                <i class="fas fa-user mr-1 md:mr-2"></i>Frans Vargas
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 flex-grow z-10 w-full max-w-full">
+            <div class="col-span-1 md:col-span-7">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 mb-4 md:mb-6">
+                    <div class="model-card card">
+                        <div class="model-header bg-gradient-to-r from-blue-700 to-blue-600 bg-opacity-50 p-4">
+                            <h2 class="text-lg md:text-xl font-bold text-white mb-1">EOQ</h2>
+                            <p class="text-xs md:text-sm text-blue-100">Cantidad Económica de Pedido</p>
+                            <div class="formula-badge">
+                                <div id="eoq-formula">$$Q = \sqrt{\frac{2DS}{H}}$$</div>
+                            </div>
+                        </div>
+                        <div class="p-3 md:p-4">
+                             <div class="text-xs text-blue-200 mb-2 md:mb-3">
+                                <span class="font-medium text-blue-100">Donde:</span><br>
+                                Q = Cantidad óptima<br>
+                                D = Demanda anual<br>
+                                S = Costo de pedido<br>
+                                H = Costo de mantenimiento
+                            </div>
+                             <div class="text-xs md:text-sm text-blue-100">
+                                Equilibra costos de pedido y almacenamiento para minimizar costo total.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-card card">
+                        <div class="model-header bg-gradient-to-r from-purple-700 to-purple-600 bg-opacity-50 p-4">
+                            <h2 class="text-lg md:text-xl font-bold text-white mb-1">Punto de Reorden</h2>
+                            <p class="text-xs md:text-sm text-purple-100">Cuándo realizar un pedido</p>
+                            <div class="formula-badge">
+                                <div id="rop-formula">$$ROP = d \times L + SS$$</div>
+                            </div>
+                        </div>
+                         <div class="p-3 md:p-4">
+                            <div class="text-xs text-blue-200 mb-2 md:mb-3">
+                                <span class="font-medium text-blue-100">Donde:</span><br>
+                                ROP = Punto de reorden<br>
+                                d = Demanda diaria<br>
+                                L = Lead time (días)<br>
+                                SS = Stock de seguridad
+                            </div>
+                             <div class="text-xs md:text-sm text-blue-100">
+                                Determina el nivel de inventario que activa un nuevo pedido.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-card card">
+                        <div class="model-header bg-gradient-to-r from-pink-700 to-pink-600 bg-opacity-50 p-4">
+                             <h2 class="text-lg md:text-xl font-bold text-white mb-1">JIT</h2>
+                            <p class="text-xs md:text-sm text-pink-100">Just In Time</p>
+                            <div class="formula-badge">
+                                <div class="flex justify-center items-center">
+                                     <i class="fas fa-stopwatch text-base md:text-lg mr-2 md:mr-3 text-pink-300"></i>
+                                     <span class="text-xs md:text-sm text-pink-200">Inventario → 0</span>
+                                </div>
+                            </div>
+                        </div>
+                         <div class="p-3 md:p-4">
+                             <div class="text-xs text-blue-200 mb-2 md:mb-3">
+                                <span class="font-medium text-blue-100">Principios:</span><br>
+                                • Suministro según demanda<br>
+                                • Eliminación de desperdicios<br>
+                                • Calidad perfecta<br>
+                                • Flexibilidad
+                            </div>
+                             <div class="text-xs md:text-sm text-blue-100">
+                                Filosofía de "lo que se necesita, cuando se necesita, en la cantidad exacta".
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-4 md:p-6">
+                    <h3 class="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Comparativa de Modelos</h3>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="modelComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-1 md:col-span-5">
+                 <div class="card p-4 md:p-6 h-full flex flex-col">
+                    <h3 class="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Características y aplicaciones</h3>
+
+                     <div class="mb-4 md:mb-6 flex-grow">
+                         <h4 class="text-blue-400 flex items-center mb-2 md:mb-3">
+                             <i class="fas fa-calculator mr-1 md:mr-2 text-sm md:text-base"></i>
+                            <span class="text-sm md:text-base">EOQ - Cantidad Económica de Pedido</span>
+                        </h4>
+                        <ul class="space-y-1 md:space-y-2 text-xs md:text-sm">
+                            <li class="feature-item feature-eoq pl-3 md:pl-4">
+                                 <div class="font-medium text-white text-xs md:text-sm">Demanda constante y conocida</div>
+                                 <div class="text-xs text-blue-200">Ideal para productos estables sin estacionalidad</div>
+                            </li>
+                            <li class="feature-item feature-eoq pl-3 md:pl-4">
+                                 <div class="font-medium text-white text-xs md:text-sm">Equilibrio de costos</div>
+                                 <div class="text-xs text-blue-200">Entre realizar pedidos y mantener inventario</div>
+                            </li>
+                            <li class="feature-item feature-eoq pl-3 md:pl-4">
+                                 <div class="font-medium text-white text-xs md:text-sm">Reposición instantánea</div>
+                                 <div class="text-xs text-blue-200">Asume que todo el lote llega en un momento</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                     <div class="mb-4 md:mb-6 flex-grow">
+                         <h4 class="text-purple-400 flex items-center mb-2 md:mb-3">
+                             <i class="fas fa-flag-checkered mr-1 md:mr-2 text-sm md:text-base"></i>
+                            <span class="text-sm md:text-base">Punto de Reorden y Lote Óptimo</span>
+                        </h4>
+                        <ul class="space-y-1 md:space-y-2 text-xs md:text-sm">
+                            <li class="feature-item feature-rop pl-3 md:pl-4">
+                                 <div class="font-medium text-white text-xs md:text-sm">Integra lead time</div>
+                                 <div class="text-xs text-blue-200">Considera el tiempo de entrega del proveedor</div>
+                            </li>
+                            <li class="feature-item feature-rop pl-3 md:pl-4">
+                                 <div class="font-medium text-white text-xs md:text-sm">Stock de seguridad</div>
+                                 <div class="text-xs text-blue-200">Protege contra variaciones en demanda y suministro</div>
+                            </li>
+                            <li class="feature-item feature-rop pl-3 md:pl-4">
+                                 <div class="font-medium text-white text-xs md:text-sm">Planeación avanzada</div>
+                                 <div class="text-xs text-blue-200">Permite anticipar necesidades futuras</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                     <div class="mb-2 md:mb-2 flex-grow">
+                         <h4 class="text-pink-400 flex items-center mb-2 md:mb-3">
+                             <i class="fas fa-bolt mr-1 md:mr-2 text-sm md:text-base"></i>
+                            <span class="text-sm md:text-base">JIT - Justo a Tiempo</span>
+                        </h4>
+                        <ul class="space-y-1 md:space-y-2 text-xs md:text-sm">
+                            <li class="feature-item feature-jit pl-3 md:pl-4">
+                                 <div class="font-medium text-white text-xs md:text-sm">Cero inventarios</div>
+                                 <div class="text-xs text-blue-200">Minimiza o elimina el stock en proceso y terminado</div>
+                            </li>
+                            <li class="feature-item feature-jit pl-3 md:pl-4">
+                                 <div class="font-medium text-white text-xs md:text-sm">Relaciones estratégicas</div>
+                                 <div class="text-xs text-blue-200">Requiere proveedores confiables y cercanos</div>
+                            </li>
+                            <li class="feature-item feature-jit pl-3 md:pl-4">
+                                 <div class="font-medium text-white text-xs md:text-sm">Filosofía Lean</div>
+                                 <div class="text-xs text-blue-200">Parte de la metodología Toyota de mejora continua</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="mt-4 md:mt-6 p-2 md:p-3 bg-blue-900 bg-opacity-30 rounded-lg border border-blue-800 border-opacity-30">
+                         <h4 class="text-xs md:text-sm font-medium text-white mb-1 md:mb-2">¿Cuándo usar cada modelo?</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs md:text-xs">
+                            <div class="p-1 md:p-2 bg-blue-800 bg-opacity-30 rounded text-center">
+                                <div class="font-medium text-blue-300 text-xs md:text-sm">EOQ</div>
+                                <div class="text-blue-100 text-xs">Productos estables, demanda predecible</div>
+                            </div>
+                            <div class="p-1 md:p-2 bg-purple-800 bg-opacity-30 rounded text-center">
+                                <div class="font-medium text-purple-300 text-xs md:text-sm">Punto Reorden</div>
+                                <div class="text-blue-100 text-xs">Lead times variables, demanda fluctuante</div>
+                            </div>
+                            <div class="p-1 md:p-2 bg-pink-800 bg-opacity-30 rounded text-center">
+                                <div class="font-medium text-pink-300 text-xs md:text-sm">JIT</div>
+                                <div class="text-blue-100 text-xs">Producción repetitiva, cadena confiable</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="absolute bottom-4 right-4 md:right-8 text-sm text-blue-300 opacity-70">
+            8/10
+        </div>
+    </div>
+
+    <script>
+        // Initialize MathJax manually after it loads
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            },
+            svg: {
+                fontCache: 'global'
+            },
+            startup: {
+                pageReady: () => {
+                    // Render MathJax after the page is ready and content is in the DOM
+                    MathJax.startup.defaultPageReady();
+                    // Optional: Rerender if content changes dynamically later
+                    // MathJax.typesetPromise();
+                }
+            }
+        };
+
+        // Chart for model comparison
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('modelComparisonChart').getContext('2d');
+            const modelComparisonChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: [
+                        'Simplicidad',
+                        'Minimización de costos',
+                        'Flexibilidad',
+                        'Stock de seguridad',
+                        'Reducción de inventario',
+                        'Facilidad implementación'
+                    ],
+                    datasets: [
+                        {
+                            label: 'EOQ',
+                            data: [80, 85, 40, 60, 30, 90],
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
+                        },
+                        {
+                            label: 'Punto de Reorden',
+                            data: [50, 70, 65, 90, 40, 60],
+                            backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                            borderColor: 'rgba(139, 92, 246, 1)',
+                            pointBackgroundColor: 'rgba(139, 92, 246, 1)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgba(139, 92, 246, 1)'
+                        },
+                        {
+                            label: 'JIT',
+                            data: [30, 60, 95, 10, 95, 25],
+                            backgroundColor: 'rgba(236, 72, 153, 0.2)',
+                            borderColor: 'rgba(236, 72, 153, 1)',
+                            pointBackgroundColor: 'rgba(236, 72, 153, 1)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgba(236, 72, 153, 1)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    elements: {
+                        line: {
+                            borderWidth: 2
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                boxWidth: 15,
+                                padding: 15,
+                                /* Adjust legend font size for responsiveness */
+                                font: {
+                                     size: 10 /* Smaller default size */
+                                }
+                            }
+                        },
+                        tooltip: { /* Added tooltip styles for readability */
+                            bodyColor: '#e2e8f0',
+                            titleColor: '#f8fafc',
+                            backgroundColor: 'rgba(30, 41, 59, 0.9)'
+                        }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            pointLabels: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                /* Adjust point label font size for responsiveness */
+                                font: {
+                                    size: 9 /* Smaller default size */
+                                }
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                backdropColor: 'transparent',
+                                /* Adjust tick font size for responsiveness */
+                                font: {
+                                     size: 8 /* Even smaller default size */
+                                }
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100
+                        }
+                    }
+                }
+            });
+
+            // Optional: Adjust chart options on window resize for more fine-grained control
+            window.addEventListener('resize', function() {
+                if (modelComparisonChart) {
+                     const newSize = window.innerWidth < 768 ? 8 : 11; // Adjust based on breakpoints
+                     modelComparisonChart.options.plugins.legend.labels.font.size = newSize;
+                     modelComparisonChart.options.scales.r.pointLabels.font.size = newSize + 1; // Slightly larger
+                     modelComparisonChart.options.scales.r.ticks.font.size = newSize - 1; // Slightly smaller
+                     modelComparisonChart.update();
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
